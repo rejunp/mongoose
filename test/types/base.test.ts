@@ -70,6 +70,22 @@ function setAsObject() {
   expectError(mongoose.set({ invalid: true }));
 }
 
+function debugOptions() {
+  mongoose.set({
+    debug: { color: true, shell: false }
+  });
+
+  mongoose.set({
+    debug: { timestamp: true }
+  });
+
+  mongoose.set({
+    debug: { color: true, shell: false, timestamp: true }
+  });
+
+  expectError(mongoose.set({ debug: { invalidOption: true } }));
+}
+
 const x: { name: string } = mongoose.omitUndefined({ name: 'foo' });
 
 function baseConnectionAndCollection() {

@@ -103,6 +103,28 @@ describe('mongoose module:', function() {
     assert.equal('User.findOne({ key: \'value\' })', actual);
   });
 
+  it('debug timestamp option prefixes ISO timestamp to console output', async function() {
+    const mongoose = new Mongoose();
+
+    mongoose.set('debug', { timestamp: true, color: false });
+
+    const stub = sinon.stub(console, 'info');
+    try {
+      await mongoose.connect(start.uri);
+      const User = mongoose.model('User', new Schema({ name: String }));
+      await User.findOne();
+
+      assert.ok(stub.calledOnce);
+      const output = stub.firstCall.args[0];
+
+      assert.ok(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z/.test(output), `Expected ISO timestamp prefix, got: ${output}`);
+      assert.ok(output.includes('Mongoose: '), `Expected "Mongoose: " in output, got: ${output}`);
+    } finally {
+      stub.restore();
+      await mongoose.disconnect();
+    }
+  });
+
   it('{g,s}etting options', function() {
     const mongoose = new Mongoose();
 
