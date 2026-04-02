@@ -103,6 +103,60 @@ describe('mongoose module:', function() {
     assert.equal('User.findOne({ key: \'value\' })', actual);
   });
 
+  it('debug timestamp option prefixes ISO timestamp and duration to console output', async function() {
+    const mongoose = new Mongoose();
+
+    mongoose.set('debug', { timestamp: true, color: false });
+
+    const stub = sinon.stub(console, 'info');
+    try {
+      await mongoose.connect(start.uri);
+      const User = mongoose.model('User', new Schema({ name: String }));
+      await User.findOne();
+
+      assert.ok(stub.calledOnce);
+      const output = stub.firstCall.args[0];
+
+      assert.ok(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z/.test(output), `Expected ISO timestamp prefix, got: ${output}`);
+      assert.ok(/\[t=\d+\.\d{3}ms\]/.test(output), `Expected duration in output, got: ${output}`);
+      assert.ok(output.includes('Mongoose: '), `Expected "Mongoose: " in output, got: ${output}`);
+    } finally {
+      stub.restore();
+      await mongoose.disconnect();
+    }
+  });
+
+  it('debug timestamp duration reflects actual operation elapsed time', async function() {
+    const mongoose = new Mongoose();
+
+    mongoose.set('debug', { timestamp: true, color: false });
+
+    const stub = sinon.stub(console, 'info');
+    try {
+      await mongoose.connect(start.uri);
+      const User = mongoose.model('User', new Schema({ name: String }));
+
+      const before = performance.now();
+      await User.findOne();
+      const after = performance.now();
+
+      assert.ok(stub.calledOnce);
+      const output = stub.firstCall.args[0];
+
+      const match = output.match(/\[t=(\d+\.\d{3})ms\]/);
+      assert.ok(match, `Expected [t=Xms] in output, got: ${output}`);
+
+      const logged = parseFloat(match[1]);
+      const elapsed = after - before;
+
+      assert.ok(logged > 0, `Expected duration > 0, got: ${logged}`);
+      assert.ok(logged <= elapsed, `Expected logged duration (${logged}ms) <= elapsed (${elapsed}ms)`);
+    } finally {
+      stub.restore();
+      await mongoose.disconnect();
+    }
+  });
+
   it('{g,s}etting options', function() {
     const mongoose = new Mongoose();
 
